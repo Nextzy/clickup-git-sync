@@ -38,6 +38,12 @@ function apiRequest({ method, endpoint, token, body }) {
   });
 }
 
+// The user that owns the token (used to auto-assign created subtasks to self).
+async function resolveCurrentUser(token) {
+  const data = await apiRequest({ method: 'GET', endpoint: '/user', token });
+  return data.user || null; // { id, username, email, ... }
+}
+
 // Pick the workspace (team). Match by name if provided, else use the first.
 async function resolveWorkspace(token, workspaceName) {
   const data = await apiRequest({ method: 'GET', endpoint: '/team', token });
@@ -63,21 +69,70 @@ async function resolveWorkspace(token, workspaceName) {
   return teams[0];
 }
 
-// Walk spaces -> folderless lists -> folders -> lists to find a list by name.
-async function resolveList(token, teamId, targetListName) {
-  const target = targetListName.toLowerCase();
-  const spacesData = await apiRequest({ method: 'GET', endpoint: `/team/${teamId}/space`, token });
-  if (!spacesData.spaces) return null;
+// Normalize a ClickUp name for comparison: trim, collapse inner whitespace,
+// lowercase. Real folder/list names often carry stray trailing spaces
+// (e.g. "[True] Support List Jul 2026 "), so exact matching is too brittle.
+function norm(s) {
+  return String(s == null ? '' : s).trim().replace(/\s+/g, ' ').toLowerCase();
+}
 
-  for (const space of spacesData.spaces) {
+// Find a list by name, scoped as narrowly as the caller allows.
+//
+// opts:
+//   spaceId      only search this space (skip enumerating every space)
+//   spaceName    if no spaceId, only search spaces whose name matches
+//   folderNames  array of acceptable folder names; only match lists inside a
+//                folder whose (normalized) name is one of these. This is what
+//                disambiguates a list name reused across monthly folders.
+//
+// With no opts it keeps the original behavior: scan every space,
+// folderless lists first, then every folder.
+async function resolveList(token, teamId, targetListName, opts = {}) {
+  const { spaceId, spaceName, folderNames } = opts;
+  const target = norm(targetListName);
+
+  // 1. Decide which spaces to search.
+  let spaces;
+  if (spaceId) {
+    spaces = [{ id: spaceId, name: spaceName || String(spaceId) }];
+  } else {
+    const spacesData = await apiRequest({ method: 'GET', endpoint: `/team/${teamId}/space`, token });
+    spaces = spacesData.spaces || [];
+    if (spaceName) {
+      const wanted = norm(spaceName);
+      const matched = spaces.filter((s) => norm(s.name) === wanted);
+      if (matched.length === 0) {
+        console.log(`⚠️ Space "${spaceName}" not found; scanning all spaces.`);
+      } else {
+        spaces = matched;
+      }
+    }
+  }
+
+  const wantedFolders = (folderNames || []).map(norm).filter(Boolean);
+
+  for (const space of spaces) {
+    const foldersData = await apiRequest({ method: 'GET', endpoint: `/space/${space.id}/folder`, token });
+    const folders = foldersData.folders || [];
+
+    // 2a. Folder pinned: only look inside the matching folder(s).
+    if (wantedFolders.length) {
+      for (const folder of folders.filter((f) => wantedFolders.includes(norm(f.name)))) {
+        const folderLists = await apiRequest({ method: 'GET', endpoint: `/folder/${folder.id}/list`, token });
+        const inFolder = (folderLists.lists || []).find((l) => norm(l.name) === target);
+        if (inFolder) return inFolder.id;
+      }
+      continue; // don't fall back to other folders / folderless lists
+    }
+
+    // 2b. No folder pinned: folderless lists first, then every folder.
     const listsData = await apiRequest({ method: 'GET', endpoint: `/space/${space.id}/list`, token });
-    const direct = (listsData.lists || []).find((l) => l.name.toLowerCase() === target);
+    const direct = (listsData.lists || []).find((l) => norm(l.name) === target);
     if (direct) return direct.id;
 
-    const foldersData = await apiRequest({ method: 'GET', endpoint: `/space/${space.id}/folder`, token });
-    for (const folder of foldersData.folders || []) {
+    for (const folder of folders) {
       const folderLists = await apiRequest({ method: 'GET', endpoint: `/folder/${folder.id}/list`, token });
-      const inFolder = (folderLists.lists || []).find((l) => l.name.toLowerCase() === target);
+      const inFolder = (folderLists.lists || []).find((l) => norm(l.name) === target);
       if (inFolder) return inFolder.id;
     }
   }
@@ -99,14 +154,38 @@ async function resolveParentTask(token, listId, categoryName) {
     method: 'POST',
     endpoint: `/list/${listId}/task`,
     token,
-    body: { name: categoryName, status: 'Open' },
+    // Omit `status` — let the list's default apply (status names vary per list).
+    body: { name: categoryName },
   });
   return newTask.id;
 }
 
+// Fetch a single task by ID (used to validate/label an --task-id).
+async function getTask(token, taskId) {
+  return apiRequest({ method: 'GET', endpoint: `/task/${taskId}`, token });
+}
+
+// Search a list (subtasks included) for tasks matching a name. Exact
+// (normalized) matches win; otherwise falls back to "contains". Returns
+// [{ id, name }]. Note: reads the first page of tasks (ClickUp default ~100).
+async function findTasksByName(token, listId, query) {
+  const data = await apiRequest({
+    method: 'GET',
+    endpoint: `/list/${listId}/task?subtasks=true&include_closed=true`,
+    token,
+  });
+  const q = norm(query);
+  const tasks = (data.tasks || []).map((t) => ({ id: t.id, name: t.name }));
+  const exact = tasks.filter((t) => norm(t.name) === q);
+  return exact.length ? exact : tasks.filter((t) => norm(t.name).includes(q));
+}
+
 module.exports = {
   apiRequest,
+  resolveCurrentUser,
   resolveWorkspace,
   resolveList,
   resolveParentTask,
+  getTask,
+  findTasksByName,
 };

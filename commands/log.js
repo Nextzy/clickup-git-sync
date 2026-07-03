@@ -1,41 +1,45 @@
 'use strict';
 
-const { requireToken, getListName, getWorkspaceName } = require('../src/config');
-const { resolveWorkspace, resolveList } = require('../src/api');
+const { isValidDate, durationHoursFromFlags } = require('../src/config');
+const { resolveTarget } = require('../src/resolve');
 const { createSubtaskWithTime } = require('../src/clickup');
 const { writeHistory } = require('../src/history');
 
 // Direct time logging with no git commit.
 //
 // Flags:
-//   --task "<name>"       (required)
-//   --category "<name>"   (required)
-//   --hours <number>      (required)
-//   --date "<YYYY-MM-DD>" (optional, defaults to today)
+//   --task "<name>"           (required)
+//   --category "<name>"       (required)
+//   --hours <number>          (required)
+//   --start-date <YYYY-MM-DD> (optional, defaults to today)
+//   --end-date <YYYY-MM-DD>   (optional, defaults to start date)
+//   --date <YYYY-MM-DD>       (optional shorthand: sets both start and end)
 async function run(flags) {
   const taskName = typeof flags.task === 'string' ? flags.task : '';
   const category = typeof flags.category === 'string' ? flags.category : '';
-  const hours = flags.hours !== undefined ? parseFloat(flags.hours) : NaN;
-  const dateStr = typeof flags.date === 'string' ? flags.date : '';
+  const hours = durationHoursFromFlags(flags);
+  const startDateStr = typeof flags['start-date'] === 'string' ? flags['start-date']
+    : (typeof flags.date === 'string' ? flags.date : '');
+  const endDateStr = typeof flags['end-date'] === 'string' ? flags['end-date']
+    : (typeof flags.date === 'string' ? flags.date : '');
 
   if (!taskName || !category || isNaN(hours) || hours <= 0) {
-    console.error('❌ Missing required parameters. --task, --category, and --hours are required.');
-    console.error('   Example: npx clickup-git-sync log --task "Meeting" --category Meeting --hours 1.5');
+    console.error('❌ Missing required parameters. --task, --category, and time (--hours/--minutes) are required.');
+    console.error('   Example: npx clickup-git-sync log --task "Standup" --category "Main Task [Meeting]" --hours 1 --min 30');
     process.exit(1);
   }
-
-  const token = requireToken();
-  const listName = getListName();
+  for (const [label, v] of [['start', startDateStr], ['end', endDateStr]]) {
+    if (v && !isValidDate(v)) {
+      console.error(`❌ Invalid ${label} date "${v}" — use YYYY-MM-DD.`);
+      process.exit(1);
+    }
+  }
 
   try {
-    console.log('Resolving ClickUp parameters...');
-    const workspace = await resolveWorkspace(token, getWorkspaceName());
-    const listId = await resolveList(token, workspace.id, listName);
-    if (!listId) throw new Error(`Could not find list "${listName}" in workspace.`);
-    console.log(`✓ List: "${listName}" (ID: ${listId})`);
+    const { token, teamId, listId } = await resolveTarget(startDateStr);
 
     const { parentTaskId, subtaskId } = await createSubtaskWithTime({
-      token, teamId: workspace.id, listId, category, taskName, hours, dateStr,
+      token, teamId, listId, category, taskName, hours, startDateStr, endDateStr,
     });
 
     writeHistory({

@@ -12,14 +12,28 @@ Commands:
   setup                 Save your ClickUp API token (once per machine)
                           --token pk_xxx    set non-interactively
   init                  Scaffold this project (once per repo)
-                          --list "<name>"   ClickUp list name
-                          --tools a,b,c     claude,cursor,antigravity,codex (default: all)
-                          --force           overwrite existing files
+                          --list "<name>"        ClickUp list name
+                          --space "<name>"       pin space/client (e.g. "True Money")
+                          --space-id <id>        pin space by ID (preferred)
+                          --folder-prefix "<p>"  monthly folder prefix
+                                                   (+ "Mon YYYY" appended at run time)
+                          --tools a,b,c          claude,cursor,antigravity,codex (default: all)
+                          --force                overwrite existing files
   commit                Stage, commit, and sync the commit to ClickUp
-                          --message "<msg>" --category "<cat>" --hours <n>
-                          --date YYYY-MM-DD --stage --no-log --yes
-  log                   Log time directly (no commit)
-                          --task "<name>" --category "<cat>" --hours <n> [--date]
+                          --message "<msg>" --category "<cat>"
+                          --hours/-h <n> --minutes/--min <n>  (summed)
+                          --start-date YYYY-MM-DD --end-date YYYY-MM-DD
+                          --date YYYY-MM-DD (shorthand: both) --stage --no-log --yes
+  log                   Log time directly (creates a subtask + time)
+                          --task "<name>" --category "<cat>"
+                          --hours/--h <n> --minutes/--min <n>  (summed)
+                          --start-date YYYY-MM-DD --end-date YYYY-MM-DD (or --date)
+  add-time              Log time to an EXISTING task (creates nothing new)
+                          --task-id <id>  OR  --task-name "<search>"
+                          --hours/--h <n> --minutes/--min <n>  --start-date YYYY-MM-DD
+  task                  Create a subtask WITHOUT logging time
+                          --task "<name>" --category "<cat>"
+                          --start-date YYYY-MM-DD --end-date YYYY-MM-DD (or --date)
   history               Show local sync history  [--json] [--limit N]
   help                  Show this help
 
@@ -42,7 +56,9 @@ async function main() {
   const argv = normalize(process.argv.slice(2));
   const { command, flags } = parseArgs(argv);
 
-  if (!command || command === 'help' || flags.help || flags.h) {
+  // Note: `--h` is intentionally NOT a help alias — it's the short form of
+  // --hours. Use `help` or `--help`.
+  if (!command || command === 'help' || flags.help) {
     console.log(HELP);
     return;
   }
@@ -52,6 +68,8 @@ async function main() {
     init: () => require('../commands/init').run(flags),
     commit: () => require('../commands/commit').run(flags),
     log: () => require('../commands/log').run(flags),
+    'add-time': () => require('../commands/addtime').run(flags),
+    task: () => require('../commands/task').run(flags),
     history: () => require('../commands/history').run(flags),
   };
 

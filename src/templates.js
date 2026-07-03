@@ -7,28 +7,66 @@
 // via npm. These files only teach the AI *when* and *how* to call the CLI, so
 // they rarely need to change.
 
-const CATEGORIES = 'Planning, Frontend, Backend, Support, Monitor, Testing, Meeting';
+// The `--category` value must EXACTLY match an existing parent ("Main Task")
+// in the ClickUp list — resolveParentTask matches by exact name and will create
+// a brand-new task if it doesn't match. So always pass the full name below.
+const CATEGORIES = [
+  'Main Task [Support]',
+  'Main Task [Backend]',
+  'Main Task [Frontend]',
+  'Main Task [Planning and Learning]',
+  'Main Task [Monitor]',
+  'Main Task [Testing]',
+  'Main Task [Meeting]',
+].join(', ');
 
 // Shared prose describing the two slash commands.
 const GIT_COMMIT_STEPS = `When the user triggers \`/git-commit\`:
 1. Inspect uncommitted work with \`git status\` and \`git diff\`.
 2. Draft a clean, descriptive commit message from the changes.
-3. Suggest a category (${CATEGORIES}) based on the file types.
-4. Suggest tracked hours (0.5h docs/typo, 1-2h moderate, 3h+ major).
-5. Show the proposed message, category, and hours and ask the user to confirm.
-6. On confirmation run the CLI (it stages, commits, and syncs to ClickUp):
+3. Pick the category based on the file types — use ONE of these EXACT names:
+   ${CATEGORIES}
+4. Suggest tracked time (0.5h docs/typo, 1-2h moderate, 3h+ major). Time can be
+   given as \`--hours\`/\`-h\` and/or \`--minutes\`/\`--min\` (they are summed).
+5. Ask which date the work should be logged on: press Enter/skip for **today**, or
+   give a past date (backdate) or future date in YYYY-MM-DD.
+6. Show the proposed message, category, time, and date and ask the user to confirm.
+7. On confirmation run the CLI (it stages, commits, and syncs to ClickUp):
    \`\`\`bash
-   npx clickup-git-sync commit --message "<msg>" --category "<category>" --hours <hours> --stage --yes
+   npx clickup-git-sync commit --message "<msg>" --category "<category>" --hours <h> --min <m> --stage --yes
    \`\`\`
-   To commit without logging time, add \`--no-log\`.`;
+   - Time: use \`--hours\`/\`-h\` and/or \`--minutes\`/\`--min\` (e.g. \`-h 1 --min 30\` = 1.5h).
+   - To log on a specific day, add \`--start-date YYYY-MM-DD\` (and optionally
+     \`--end-date YYYY-MM-DD\` for a range). Omit both for today.
+   - To commit without logging time, add \`--no-log\`.`;
 
-const CLICKUP_LOG_STEPS = `When the user triggers \`/clickup-log\` or asks to log time directly (no commit):
-1. Determine task name, hours, and category (${CATEGORIES}); ask if missing.
-2. Run:
-   \`\`\`bash
-   npx clickup-git-sync log --task "<task>" --category "<category>" --hours <hours>
-   \`\`\`
-3. Confirm success to the user.`;
+const CLICKUP_LOG_STEPS = `When the user triggers \`/clickup-log\` or asks to log time / manage tasks
+directly (no commit), first decide which of these three they want:
+
+**Shared rules for every case below:**
+- Category must be ONE of these EXACT names: ${CATEGORIES}
+- Time: \`--hours\`/\`--h\` and/or \`--minutes\`/\`--min\` are summed (e.g. \`--h 1 --min 30\` = 1.5h).
+- Date: ask which day — Enter/skip = **today**, or a past (backdate) / future date.
+  Add \`--start-date YYYY-MM-DD\` (and optionally \`--end-date YYYY-MM-DD\`); omit for today.
+- Always confirm the plan with the user before running, then confirm success after.
+
+**A. Log time (create a new subtask + time)** — the default:
+\`\`\`bash
+npx clickup-git-sync log --task "<task>" --category "<category>" --hours <h> --min <m>
+\`\`\`
+
+**B. Log time to an EXISTING task** (user says "add time to <something already there>"):
+The user gives a rough task name. Search ONLY the configured list by name:
+\`\`\`bash
+npx clickup-git-sync add-time --task-name "<rough name>" --hours <h> --min <m>
+\`\`\`
+If the CLI reports multiple matches, show the candidates to the user, let them pick,
+then re-run with the exact id: \`add-time --task-id <id> --hours <h>\`.
+
+**C. Create a task WITHOUT logging time** (user says "just make the task", "no time"):
+\`\`\`bash
+npx clickup-git-sync task --task "<task>" --category "<category>"
+\`\`\``;
 
 function rulesDoc(tool) {
   return `# ${tool} Workspace Rules - ClickUp Git Sync

@@ -1,8 +1,8 @@
 'use strict';
 
 const git = require('../src/git');
-const { requireToken, getListName, getWorkspaceName } = require('../src/config');
-const { resolveWorkspace, resolveList } = require('../src/api');
+const { isValidDate, durationHoursFromFlags } = require('../src/config');
+const { resolveTarget } = require('../src/resolve');
 const { createSubtaskWithTime } = require('../src/clickup');
 const { writeHistory } = require('../src/history');
 const { ask, isInteractive } = require('../src/prompt');
@@ -99,32 +99,39 @@ async function run(flags) {
   }
   category = category || detectedCategory;
 
-  let hours = flags.hours !== undefined ? parseFloat(flags.hours) : NaN;
+  // --hours/-h and --minutes/--min are summed (e.g. -h 1 --min 30 -> 1.5).
+  let hours = durationHoursFromFlags(flags);
   if (isNaN(hours) && !auto) {
     const ans = await ask(`Hours [${recommendedHours}]: `);
     hours = ans.trim() ? parseFloat(ans) : NaN;
   }
   if (isNaN(hours)) hours = recommendedHours;
 
-  let dateStr = typeof flags.date === 'string' ? flags.date : '';
-  if (!dateStr && !auto) {
-    dateStr = (await ask('Date (YYYY-MM-DD) or Enter for today: ')).trim();
+  // Dates: --start-date / --end-date, or --date as a shorthand for both.
+  // Empty start -> today; empty end -> same as start.
+  let startDateStr = typeof flags['start-date'] === 'string' ? flags['start-date']
+    : (typeof flags.date === 'string' ? flags.date : '');
+  let endDateStr = typeof flags['end-date'] === 'string' ? flags['end-date']
+    : (typeof flags.date === 'string' ? flags.date : '');
+  if (!auto) {
+    if (!startDateStr) startDateStr = (await ask('Start date (YYYY-MM-DD) or Enter for today: ')).trim();
+    if (!endDateStr) endDateStr = (await ask('End date (YYYY-MM-DD) or Enter = same as start: ')).trim();
+  }
+  for (const [label, v] of [['start', startDateStr], ['end', endDateStr]]) {
+    if (v && !isValidDate(v)) {
+      console.error(`❌ Invalid ${label} date "${v}" — use YYYY-MM-DD.`);
+      process.exit(1);
+    }
   }
 
   // 8. Sync
-  const token = requireToken();
-  const listName = getListName();
   const subtaskName = `Commit [${hash}]: ${message}`;
 
   try {
-    console.log('Resolving ClickUp parameters...');
-    const workspace = await resolveWorkspace(token, getWorkspaceName());
-    const listId = await resolveList(token, workspace.id, listName);
-    if (!listId) throw new Error(`Could not find list "${listName}" in workspace.`);
-    console.log(`✓ List: "${listName}" (ID: ${listId})`);
+    const { token, teamId, listId } = await resolveTarget(startDateStr);
 
     const { parentTaskId, subtaskId } = await createSubtaskWithTime({
-      token, teamId: workspace.id, listId, category, taskName: subtaskName, hours, dateStr,
+      token, teamId, listId, category, taskName: subtaskName, hours, startDateStr, endDateStr,
     });
 
     writeHistory({ type: 'git', commitHash: hash, commitMessage: message, status: 'synced', category, hours, clickupTaskId: parentTaskId, clickupSubtaskId: subtaskId });

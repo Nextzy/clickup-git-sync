@@ -31,14 +31,20 @@ function ensureGitignore(entries) {
 // Scaffold a project: write .clickup.json and the AI skill/rules files.
 //
 // Flags:
-//   --list "<name>"     project list name (else prompt / default)
+//   --list "<name>"         project list name (else prompt / default)
+//   --space "<name>"        pin the ClickUp space (client), e.g. "True Money"
+//   --space-id <id>         pin the space by ID (preferred, stable)
+//   --folder-prefix "<p>"   monthly folder prefix, e.g. "[True] Support List"
+//                             (month + year are appended automatically)
 //   --tools claude,cursor,antigravity,codex   comma list (default: all)
-//   --force             overwrite existing files
+//   --force                 overwrite existing files
 async function run(flags) {
   console.log('=== ClickUp Git Sync :: Init ===');
 
   // 1. Project config (.clickup.json)
   const existingConfig = readProjectConfig();
+  const config = { ...existingConfig };
+
   let listName = existingConfig.CLICKUP_LIST_NAME;
   if (typeof flags.list === 'string') {
     listName = flags.list;
@@ -48,9 +54,22 @@ async function run(flags) {
   } else if (!listName) {
     listName = DEFAULT_LIST_NAME;
   }
+  config.CLICKUP_LIST_NAME = listName;
 
-  saveProjectConfig({ ...existingConfig, CLICKUP_LIST_NAME: listName });
+  // Optional scoping — only overwrite when a flag is passed, so re-running
+  // init without them keeps existing values.
+  if (typeof flags.space === 'string') config.CLICKUP_SPACE_NAME = flags.space;
+  if (flags['space-id'] !== undefined) config.CLICKUP_SPACE_ID = String(flags['space-id']);
+  if (typeof flags['folder-prefix'] === 'string') config.CLICKUP_FOLDER_PREFIX = flags['folder-prefix'];
+
+  saveProjectConfig(config);
   console.log(`✓ Project config: ${PROJECT_CONFIG_PATH} (list: "${listName}")`);
+  if (config.CLICKUP_SPACE_NAME || config.CLICKUP_SPACE_ID) {
+    console.log(`  space: ${config.CLICKUP_SPACE_NAME || ''}${config.CLICKUP_SPACE_ID ? ` (ID: ${config.CLICKUP_SPACE_ID})` : ''}`.trim());
+  }
+  if (config.CLICKUP_FOLDER_PREFIX) {
+    console.log(`  folder prefix: "${config.CLICKUP_FOLDER_PREFIX}" (+ month/year at run time)`);
+  }
 
   // 2. Which AI tools to scaffold skills for
   let tools = ALL_TOOLS;
@@ -71,7 +90,7 @@ async function run(flags) {
 
   console.log('\n✓ Done. Try it:');
   console.log('  npx clickup-git-sync commit      # commit + sync');
-  console.log('  npx clickup-git-sync log --task "Standup" --category Meeting --hours 0.5');
+  console.log('  npx clickup-git-sync log --task "Standup" --category "Main Task [Meeting]" --hours 0.5');
 }
 
 module.exports = { run };

@@ -72,6 +72,76 @@ function getWorkspaceName() {
   return readProjectConfig().CLICKUP_WORKSPACE_NAME || null;
 }
 
+// Optional: pin a specific space (client) so list lookup doesn't scan every
+// space in the workspace. ID is preferred (stable); name is a human fallback.
+function getSpaceId() {
+  return readProjectConfig().CLICKUP_SPACE_ID || null;
+}
+
+function getSpaceName() {
+  return readProjectConfig().CLICKUP_SPACE_NAME || null;
+}
+
+// Optional: the monthly folder prefix, e.g. "[True] Support List".
+// The month + year are appended automatically at run time (see monthlyFolderName).
+function getFolderPrefix() {
+  return readProjectConfig().CLICKUP_FOLDER_PREFIX || null;
+}
+
+const MONTHS_ABBR = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MONTHS_FULL = ['January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'];
+
+// Resolve tracked duration (in hours) from flags. Accepts --hours/--h and
+// --minutes/--min, and sums them (e.g. --h 1 --min 30 -> 1.5). Returns NaN when
+// neither is given or a value is non-numeric, so callers can fall back / error.
+function durationHoursFromFlags(flags) {
+  const hRaw = flags.hours !== undefined ? flags.hours : flags.h;
+  const mRaw = flags.minutes !== undefined ? flags.minutes : flags.min;
+  const hasH = hRaw !== undefined;
+  const hasM = mRaw !== undefined;
+  if (!hasH && !hasM) return NaN;
+  const h = hasH ? parseFloat(hRaw) : 0;
+  const m = hasM ? parseFloat(mRaw) : 0;
+  if (isNaN(h) || isNaN(m)) return NaN;
+  return h + m / 60;
+}
+
+// True only for a real YYYY-MM-DD date. Used to reject typos instead of
+// silently falling back to "today".
+function isValidDate(str) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(str || '').trim())) return false;
+  const d = new Date(str);
+  return !isNaN(d.getTime());
+}
+
+// Resolve the target month/year from a YYYY-MM-DD string (timezone-safe:
+// parsed directly, not via Date), falling back to the current month.
+function monthYearFor(dateStr) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(dateStr || '');
+  if (m) return { month: Number(m[2]) - 1, year: Number(m[1]) };
+  const now = new Date();
+  return { month: now.getMonth(), year: now.getFullYear() };
+}
+
+// Build the ACCEPTABLE monthly folder names for a prefix + run date.
+// Returns both the abbreviated and full-month spellings because real ClickUp
+// folders are inconsistent (e.g. "Jun 2026" vs "June 2026"). Callers compare
+// after normalizing whitespace/case, so trailing spaces don't matter.
+// e.g. ("[True] Support List", "2026-07-03")
+//        -> ["[True] Support List Jul 2026", "[True] Support List July 2026"]
+function monthlyFolderCandidates(prefix, dateStr) {
+  if (!prefix) return [];
+  const { month, year } = monthYearFor(dateStr);
+  if (month < 0 || month > 11) return [];
+  const names = [
+    `${prefix} ${MONTHS_ABBR[month]} ${year}`,
+    `${prefix} ${MONTHS_FULL[month]} ${year}`,
+  ];
+  return [...new Set(names)]; // May: abbr === full
+}
+
 module.exports = {
   GLOBAL_CONFIG_DIR,
   GLOBAL_CONFIG_PATH,
@@ -84,4 +154,10 @@ module.exports = {
   saveProjectConfig,
   getListName,
   getWorkspaceName,
+  getSpaceId,
+  getSpaceName,
+  getFolderPrefix,
+  monthlyFolderCandidates,
+  isValidDate,
+  durationHoursFromFlags,
 };
