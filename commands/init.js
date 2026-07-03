@@ -2,7 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { readProjectConfig, saveProjectConfig, PROJECT_CONFIG_PATH, DEFAULT_LIST_NAME } = require('../src/config');
+const { readProjectConfig, saveProjectConfig, PROJECT_CONFIG_PATH } = require('../src/config');
 const { filesForTool, ALL_TOOLS } = require('../src/templates');
 const { ask, isInteractive } = require('../src/prompt');
 
@@ -49,10 +49,12 @@ async function run(flags) {
   if (typeof flags.list === 'string') {
     listName = flags.list;
   } else if (!listName && isInteractive()) {
-    const answer = await ask(`ClickUp list name [${DEFAULT_LIST_NAME}]: `);
-    listName = answer.trim() || DEFAULT_LIST_NAME;
-  } else if (!listName) {
-    listName = DEFAULT_LIST_NAME;
+    listName = (await ask('ClickUp list name: ')).trim();
+  }
+  // Require an explicit list — never default to a real project list.
+  if (!listName) {
+    console.error('❌ A ClickUp list name is required. Pass --list "<name>".');
+    process.exit(1);
   }
   config.CLICKUP_LIST_NAME = listName;
 

@@ -13,8 +13,6 @@ const GLOBAL_CONFIG_PATH = path.join(GLOBAL_CONFIG_DIR, 'config.json');
 // Lives at the project root so a team can commit it to git.
 const PROJECT_CONFIG_PATH = path.join(process.cwd(), '.clickup.json');
 
-const DEFAULT_LIST_NAME = '[Project XXL] Football 2026';
-
 function readJson(file) {
   try {
     return JSON.parse(fs.readFileSync(file, 'utf8'));
@@ -62,9 +60,13 @@ function saveProjectConfig(config) {
   return PROJECT_CONFIG_PATH;
 }
 
+// Returns the configured list name, or null when no .clickup.json /
+// CLICKUP_LIST_NAME is set. Callers MUST treat null as "not configured" and
+// refuse to run — never fall back to a hardcoded list (that silently writes
+// to the wrong project).
 function getListName() {
   const config = readProjectConfig();
-  return config.CLICKUP_LIST_NAME || DEFAULT_LIST_NAME;
+  return config.CLICKUP_LIST_NAME || null;
 }
 
 // Optional: pin a specific workspace by name when the token has several.
@@ -146,7 +148,6 @@ module.exports = {
   GLOBAL_CONFIG_DIR,
   GLOBAL_CONFIG_PATH,
   PROJECT_CONFIG_PATH,
-  DEFAULT_LIST_NAME,
   readGlobalConfig,
   saveGlobalToken,
   requireToken,

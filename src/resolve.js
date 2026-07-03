@@ -10,6 +10,9 @@ const { resolveWorkspace, resolveList } = require('./api');
 async function resolveTarget(dateStr) {
   const token = requireToken();
   const listName = getListName();
+  if (!listName) {
+    throw new Error('No ClickUp list configured (missing .clickup.json). Run "clickup-git-sync init" in this project first.');
+  }
   console.log('Resolving ClickUp parameters...');
   const workspace = await resolveWorkspace(token, getWorkspaceName());
   const folderNames = monthlyFolderCandidates(getFolderPrefix(), dateStr);
