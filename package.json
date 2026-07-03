@@ -1,0 +1,40 @@
+{
+  "name": "clickup-git-sync",
+  "version": "1.0.0",
+  "description": "Sync git commits and time tracking to ClickUp as monthly category subtasks. Multi-user, npx-ready, with AI skill scaffolding for Claude, Cursor, Antigravity and Codex.",
+  "bin": {
+    "clickup-git-sync": "bin/cli.js"
+  },
+  "files": [
+    "bin",
+    "src",
+    "commands",
+    "README.md"
+  ],
+  "scripts": {
+    "start": "node bin/cli.js"
+  },
+  "engines": {
+    "node": ">=16"
+  },
+  "keywords": [
+    "clickup",
+    "git",
+    "commit",
+    "time-tracking",
+    "cli",
+    "npx",
+    "claude",
+    "cursor",
+    "antigravity",
+    "codex",
+    "ai-skill"
+  ],
+  "license": "MIT",
+  "author": "nextzy",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nextzy/clickup-git-sync.git"
+  },
+  "dependencies": {}
+}

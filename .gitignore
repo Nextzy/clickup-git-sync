@@ -1,0 +1,4 @@
+node_modules/
+.clickup-history.json
+*.log
+.DS_Store

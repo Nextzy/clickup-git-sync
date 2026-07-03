@@ -1,0 +1,140 @@
+'use strict';
+
+const git = require('../src/git');
+const { requireToken, getListName, getWorkspaceName } = require('../src/config');
+const { resolveWorkspace, resolveList } = require('../src/api');
+const { createSubtaskWithTime } = require('../src/clickup');
+const { writeHistory } = require('../src/history');
+const { ask, isInteractive } = require('../src/prompt');
+
+// Stage (optional), commit, then sync the commit to ClickUp.
+//
+// Works both interactively (prompts for anything missing) and non-interactively
+// for AI/scripts (pass everything as flags + --yes).
+//
+// Flags:
+//   --message "<msg>"     commit message (prompted if interactive)
+//   --category "<name>"   ClickUp category (defaults to auto-detected)
+//   --hours <number>      tracked hours (defaults to recommended)
+//   --date "<YYYY-MM-DD>" subtask date (defaults to today)
+//   --stage               run `git add .` before committing
+//   --no-log              commit only; do not sync to ClickUp
+//   --yes                 accept detected defaults without prompting
+async function run(flags) {
+  if (!git.isGitRepo()) {
+    console.error('❌ Not a git repository (or git is not installed).');
+    process.exit(1);
+  }
+
+  const auto = flags.yes === true || !isInteractive();
+
+  // 1. Working tree status
+  const dirty = git.status();
+  if (!dirty) {
+    console.log('No uncommitted changes. Nothing to commit.');
+    console.log('To log time without a commit: npx clickup-git-sync log --task ...');
+    return;
+  }
+  console.log('Uncommitted changes:\n' + dirty);
+
+  // 2. Stage
+  let shouldStage = flags.stage === true;
+  if (!shouldStage && !auto) {
+    const ans = await ask('Stage all changes? (git add .) (Y/n): ');
+    shouldStage = ans.trim().toLowerCase() !== 'n';
+  }
+  if (shouldStage) {
+    git.stageAll();
+    console.log('✓ Staged all changes.');
+  }
+
+  const files = git.stagedFiles();
+  if (files.length === 0) {
+    console.log('No staged files. Stage changes first (use --stage) or commit manually.');
+    return;
+  }
+
+  // 3. Commit message
+  let message = typeof flags.message === 'string' ? flags.message : '';
+  if (!message && !auto) {
+    message = (await ask('Commit message: ')).trim();
+  }
+  if (!message) {
+    console.error('❌ Commit message is required (use --message "...").');
+    process.exit(1);
+  }
+
+  // 4. Commit
+  try {
+    git.commit(message);
+  } catch (e) {
+    console.error('❌ Commit failed:', e.message);
+    process.exit(1);
+  }
+  const hash = git.shortHash();
+  console.log(`✓ Committed. Hash: ${hash}`);
+
+  // 5. Defaults from the diff
+  const detectedCategory = git.detectCategory(files);
+  const recommendedHours = git.recommendHours(files);
+
+  // 6. Decide whether to sync to ClickUp
+  let doLog = flags.log !== false; // --no-log sets flags.log = false
+  if (doLog && !auto && typeof flags.message !== 'string') {
+    const ans = await ask('Log this commit to ClickUp? (Y/n): ');
+    doLog = ans.trim().toLowerCase() !== 'n';
+  }
+
+  if (!doLog) {
+    writeHistory({ type: 'git', commitHash: hash, commitMessage: message, status: 'untracked', category: detectedCategory, hours: recommendedHours });
+    console.log('Skipped ClickUp logging (recorded as untracked).');
+    return;
+  }
+
+  // 7. Resolve category / hours / date
+  let category = typeof flags.category === 'string' ? flags.category : '';
+  if (!category && !auto) {
+    const ans = await ask(`Category [${detectedCategory}]: `);
+    category = ans.trim();
+  }
+  category = category || detectedCategory;
+
+  let hours = flags.hours !== undefined ? parseFloat(flags.hours) : NaN;
+  if (isNaN(hours) && !auto) {
+    const ans = await ask(`Hours [${recommendedHours}]: `);
+    hours = ans.trim() ? parseFloat(ans) : NaN;
+  }
+  if (isNaN(hours)) hours = recommendedHours;
+
+  let dateStr = typeof flags.date === 'string' ? flags.date : '';
+  if (!dateStr && !auto) {
+    dateStr = (await ask('Date (YYYY-MM-DD) or Enter for today: ')).trim();
+  }
+
+  // 8. Sync
+  const token = requireToken();
+  const listName = getListName();
+  const subtaskName = `Commit [${hash}]: ${message}`;
+
+  try {
+    console.log('Resolving ClickUp parameters...');
+    const workspace = await resolveWorkspace(token, getWorkspaceName());
+    const listId = await resolveList(token, workspace.id, listName);
+    if (!listId) throw new Error(`Could not find list "${listName}" in workspace.`);
+    console.log(`✓ List: "${listName}" (ID: ${listId})`);
+
+    const { parentTaskId, subtaskId } = await createSubtaskWithTime({
+      token, teamId: workspace.id, listId, category, taskName: subtaskName, hours, dateStr,
+    });
+
+    writeHistory({ type: 'git', commitHash: hash, commitMessage: message, status: 'synced', category, hours, clickupTaskId: parentTaskId, clickupSubtaskId: subtaskId });
+    console.log('✓ Done.');
+  } catch (err) {
+    console.error('❌ ClickUp sync failed:', err.message);
+    console.log('   Commit is done; recorded as untracked in .clickup-history.json.');
+    writeHistory({ type: 'git', commitHash: hash, commitMessage: message, status: 'untracked', category, hours });
+    process.exit(1);
+  }
+}
+
+module.exports = { run };
