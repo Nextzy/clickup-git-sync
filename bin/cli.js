@@ -31,6 +31,7 @@ Commands:
   add-time              Log time to an EXISTING task (creates nothing new)
                           --task-id <id>  OR  --task-name "<search>"
                           --hours/--h <n> --minutes/--min <n>  --start-date YYYY-MM-DD
+                          (adds you as an assignee by default; --no-assign to skip)
   task                  Create a subtask WITHOUT logging time
                           --task "<name>" --category "<cat>"
                           --start-date YYYY-MM-DD --end-date YYYY-MM-DD (or --date)

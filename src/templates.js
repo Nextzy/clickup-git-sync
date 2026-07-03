@@ -66,6 +66,9 @@ npx clickup-git-sync add-time --task-name "<rough name>" --hours <h> --min <m>
 \`\`\`
 If the CLI reports multiple matches, show the candidates to the user, let them pick,
 then re-run with the exact id: \`add-time --task-id <id> --hours <h>\`.
+By default add-time also adds you as an assignee (additive — the task's creator
+stays assigned), which suits shared tasks like meetings. Pass \`--no-assign\` if
+the user only wants to log time without being added to the task.
 
 **C. Create a task WITHOUT logging time** (user says "just make the task", "no time"):
 \`\`\`bash

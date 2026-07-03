@@ -165,6 +165,18 @@ async function getTask(token, taskId) {
   return apiRequest({ method: 'GET', endpoint: `/task/${taskId}`, token });
 }
 
+// Add assignees to a task WITHOUT removing existing ones (ClickUp's
+// { assignees: { add: [...] } } is additive) — so logging time to a shared
+// task never kicks off whoever created it.
+async function addTaskAssignees(token, taskId, userIds) {
+  return apiRequest({
+    method: 'PUT',
+    endpoint: `/task/${taskId}`,
+    token,
+    body: { assignees: { add: userIds } },
+  });
+}
+
 // Search a list (subtasks included) for tasks matching a name. Exact
 // (normalized) matches win; otherwise falls back to "contains". Returns
 // [{ id, name }]. Note: reads the first page of tasks (ClickUp default ~100).
@@ -187,5 +199,6 @@ module.exports = {
   resolveList,
   resolveParentTask,
   getTask,
+  addTaskAssignees,
   findTasksByName,
 };

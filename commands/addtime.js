@@ -2,7 +2,7 @@
 
 const { isValidDate, durationHoursFromFlags, requireToken, getWorkspaceName } = require('../src/config');
 const { resolveTarget } = require('../src/resolve');
-const { resolveWorkspace, getTask, findTasksByName } = require('../src/api');
+const { resolveWorkspace, resolveCurrentUser, getTask, findTasksByName, addTaskAssignees } = require('../src/api');
 const { addTimeToTask } = require('../src/clickup');
 const { writeHistory } = require('../src/history');
 
@@ -13,11 +13,14 @@ const { writeHistory } = require('../src/history');
 //   --task-name / --task "<q>"  search the configured list by name
 //   --hours/--h --minutes/--min time (required, summed)
 //   --start-date / --date       (optional, anchors the time entry to that day)
+//   --no-assign                 skip adding yourself as an assignee (on by default)
 async function run(flags) {
   const taskId = flags['task-id'] !== undefined ? String(flags['task-id']) : '';
   const query = typeof flags['task-name'] === 'string' ? flags['task-name']
     : (typeof flags.task === 'string' ? flags.task : '');
   const hours = durationHoursFromFlags(flags);
+  // Default: add yourself as an assignee (additive). Opt out with --no-assign.
+  const wantAssign = flags.assign !== false;
   const startDateStr = typeof flags['start-date'] === 'string' ? flags['start-date']
     : (typeof flags.date === 'string' ? flags.date : '');
 
@@ -70,6 +73,20 @@ async function run(flags) {
     }
 
     await addTimeToTask({ token, teamId, taskId: targetId, hours, startDateStr, description: `+${hours}h via clickup-git-sync` });
+
+    // Opt-in: add yourself as an assignee (additive — keeps the task's creator).
+    if (wantAssign) {
+      try {
+        const me = await resolveCurrentUser(token);
+        if (me && me.id) {
+          await addTaskAssignees(token, targetId, [me.id]);
+          console.log(`✓ Added self as assignee: ${me.username || me.email || me.id}`);
+        }
+      } catch (e) {
+        console.log('⚠️ Could not add self as assignee (time was still logged).');
+      }
+    }
+
     writeHistory({ type: 'add-time', taskName: targetName, hours, status: 'synced', clickupSubtaskId: targetId });
     console.log('✓ Done.');
   } catch (err) {

@@ -102,9 +102,13 @@ npx clickup-git-sync add-time --task-name "Daily standup" --min 20
 
 # ระบุ task โดยตรงด้วย ID (แม่นยำ ไม่กำกวม)
 npx clickup-git-sync add-time --task-id 86ey5fc1a --h 1 --start-date 2026-07-02
+
+# ลงเวลาโดยไม่อยากถูกใส่เป็น assignee
+npx clickup-git-sync add-time --task-name "Sprint planning" --h 1 --no-assign
 ```
 - ค้นด้วยชื่อแล้วเจอหลายตัว → ระบบโชว์ตัวเลือก + id ให้เลือกใช้ `--task-id`
-- ไม่แก้ assignee ของ task เดิม (แค่เพิ่ม time entry)
+- **default: เพิ่มตัวเองเป็น assignee** แบบ additive (ไม่เตะคนที่สร้าง task ออก) — เหมาะกับ task ที่หลายคนช่วยกันลงเวลา เช่นตอนประชุมอีกคนสร้าง task เรามาลงเวลาต่อ
+- ไม่อยากถูก assign → ใส่ `--no-assign` (ลงแค่ time entry)
 
 ### สร้าง task โดยไม่ลงเวลา (subtask เปล่า)
 
