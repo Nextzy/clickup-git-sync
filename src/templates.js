@@ -26,8 +26,12 @@ const GIT_COMMIT_STEPS = `When the user triggers \`/git-commit\`:
 2. Draft a clean, descriptive commit message from the changes.
 3. Pick the category based on the file types — use ONE of these EXACT names:
    ${CATEGORIES}
-4. Suggest tracked time (0.5h docs/typo, 1-2h moderate, 3h+ major). Time can be
-   given as \`--hours\`/\`-h\` and/or \`--minutes\`/\`--min\` (they are summed).
+4. Estimate the tracked time from the ACTUAL complexity of the diff you just
+   read — weigh how many files/modules changed, how much real logic vs
+   boilerplate, and the risk involved; don't just count lines. Use the line-count
+   bands (0.5h docs/typo, 1-2h moderate, 3h+ major) only as a loose sanity check.
+   Propose a number and always let the user adjust it.
+   Time can be given as \`--hours\`/\`-h\` and/or \`--minutes\`/\`--min\` (they are summed).
 5. Ask which date the work should be logged on: press Enter/skip for **today**, or
    give a past date (backdate) or future date in YYYY-MM-DD.
 6. Show the proposed message, category, time, and date and ask the user to confirm.

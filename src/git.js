@@ -39,36 +39,65 @@ function shortHash() {
   return sh('git rev-parse --short HEAD').trim();
 }
 
-// Map staged files to a ClickUp category by file extension / path.
+// Short detector keys -> the exact ClickUp parent task names. Returning the
+// full "Main Task [...]" name is required: resolveParentTask matches by exact
+// name, so a short key like "Backend" would create a wrong new parent.
+const CATEGORY_TASK = {
+  Frontend: 'Main Task [Frontend]',
+  Backend: 'Main Task [Backend]',
+  Testing: 'Main Task [Testing]',
+  Monitor: 'Main Task [Monitor]',
+  Support: 'Main Task [Support]',
+};
+
+// Classify one file path. Extension alone can't tell Next.js (.ts/.tsx) from
+// NestJS (.ts), so path + filename conventions are checked first. Returns a
+// short key, or null when there's no confident signal.
+function classifyFile(filePath) {
+  const p = filePath.toLowerCase();
+
+  // Tests (most specific).
+  if (/(\.|_)(test|spec)\.[jt]sx?$|_test\.go$|(^|\/)(tests?|__tests__)\//.test(p)) return 'Testing';
+
+  // Infra / monitoring / config-as-ops.
+  if (/docker-compose|dockerfile|(^|\/)\.?env|\.ya?ml$|nginx|caddy|\.tf$|k8s|helm/.test(p)) return 'Monitor';
+
+  // Path-based app roots (monorepo: frontend/+backend/, web/+api/, apps/web+apps/api).
+  // Frontend is checked FIRST so a nested api/ inside a web app (e.g.
+  // web/src/api/client.ts) stays Frontend. Bare segments also match the apps/*
+  // variants (".../web/", ".../api/").
+  if (/(^|\/)(frontend|web|client|mobile)\//.test(p)) return 'Frontend';
+  if (/(^|\/)(backend|server|api|nestjs?)\//.test(p)) return 'Backend';
+
+  // NestJS filename conventions -> Backend.
+  if (/\.(controller|service|module|entity|dto|resolver|guard|interceptor|middleware|repository|gateway|strategy)\.ts$/.test(p)) return 'Backend';
+
+  // Frontend framework/config + unambiguous frontend extensions.
+  if (/next\.config\.|tailwind\.config\.|vite\.config\.|\.(tsx|jsx|vue|svelte|css|scss|sass|less|html?)$/.test(p)) return 'Frontend';
+
+  // Backend config + unambiguous backend extensions.
+  if (/nest-cli\.json|(^|\/)prisma\/|\.(go|py|java|rs|php|rb|ex|exs|sql|prisma|proto|kt|cs)$/.test(p)) return 'Backend';
+
+  // Bare .ts/.js/.mjs with no other signal -> unknown (don't guess FE vs BE).
+  return null;
+}
+
+// Map staged files to a ClickUp category (majority vote). Defaults to Support.
 function detectCategory(files) {
-  if (!files || files.length === 0) return 'Support';
+  if (!files || files.length === 0) return CATEGORY_TASK.Support;
 
-  const extMap = {
-    Frontend: ['.js', '.jsx', '.ts', '.tsx', '.vue', '.svelte', '.css', '.scss', '.sass', '.html', '.htm'],
-    Backend: ['.go', '.py', '.java', '.rs', '.php', '.rb', '.ex', '.exs', '.sql', '.prisma', '.proto'],
-    Testing: ['.test.js', '.spec.js', '.test.ts', '.spec.ts', '_test.go', 'test_'],
-    Monitor: ['docker-compose', 'dockerfile', '.yaml', '.yml', '.env', 'nginx', 'caddy'],
-  };
-
-  const counts = { Frontend: 0, Backend: 0, Testing: 0, Monitor: 0 };
-
+  const counts = {};
   for (const file of files) {
-    const lower = file.toLowerCase();
-
-    if (extMap.Testing.some((t) => lower.includes(t))) { counts.Testing++; continue; }
-    if (extMap.Monitor.some((m) => lower.includes(m))) { counts.Monitor++; continue; }
-
-    for (const cat of ['Frontend', 'Backend']) {
-      if (extMap[cat].some((ext) => lower.endsWith(ext))) counts[cat]++;
-    }
+    const key = classifyFile(file);
+    if (key) counts[key] = (counts[key] || 0) + 1;
   }
 
-  let maxCat = 'Support';
-  let maxVal = 0;
-  for (const [cat, val] of Object.entries(counts)) {
-    if (val > maxVal) { maxVal = val; maxCat = cat; }
+  let bestKey = 'Support';
+  let bestVal = 0;
+  for (const [key, val] of Object.entries(counts)) {
+    if (val > bestVal) { bestVal = val; bestKey = key; }
   }
-  return maxCat;
+  return CATEGORY_TASK[bestKey];
 }
 
 // Recommend hours from the size of the working-tree diff.
