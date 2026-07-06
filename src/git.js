@@ -46,6 +46,7 @@ const CATEGORY_TASK = {
   Frontend: 'Main Task [Frontend]',
   Backend: 'Main Task [Backend]',
   Testing: 'Main Task [Testing]',
+  Infrastructure: 'Main Task [Infrastructure]',
   Monitor: 'Main Task [Monitor]',
   Support: 'Main Task [Support]',
 };
@@ -59,8 +60,10 @@ function classifyFile(filePath) {
   // Tests (most specific).
   if (/(\.|_)(test|spec)\.[jt]sx?$|_test\.go$|(^|\/)(tests?|__tests__)\//.test(p)) return 'Testing';
 
-  // Infra / monitoring / config-as-ops.
-  if (/docker-compose|dockerfile|(^|\/)\.?env|\.ya?ml$|nginx|caddy|\.tf$|k8s|helm/.test(p)) return 'Monitor';
+  // Infrastructure: containers, orchestration, IaC, web servers, env/config,
+  // and CI/CD. Most CI files are *.yml (caught by \.ya?ml$); Jenkinsfile has no
+  // extension so it's matched explicitly.
+  if (/docker-compose|dockerfile|(^|\/)\.?env|\.ya?ml$|nginx|caddy|\.tf$|k8s|helm|jenkinsfile|(^|\/)\.github\/workflows\/|gitlab-ci|(^|\/)\.circleci\/|azure-pipelines|bitbucket-pipelines|(^|\/)\.drone/.test(p)) return 'Infrastructure';
 
   // Path-based app roots (monorepo: frontend/+backend/, web/+api/, apps/web+apps/api).
   // Frontend is checked FIRST so a nested api/ inside a web app (e.g.

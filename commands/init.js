@@ -91,8 +91,8 @@ async function run(flags) {
   ensureGitignore(['.clickup-history.json']);
 
   console.log('\n✓ Done. Try it:');
-  console.log('  npx clickup-git-sync commit      # commit + sync');
-  console.log('  npx clickup-git-sync log --task "Standup" --category "Main Task [Meeting]" --hours 0.5');
+  console.log('  npx @nextzy-tech/clickup-git-sync commit      # commit + sync');
+  console.log('  npx @nextzy-tech/clickup-git-sync log --task "Standup" --category "Main Task [Meeting]" --hours 0.5');
 }
 
 module.exports = { run };

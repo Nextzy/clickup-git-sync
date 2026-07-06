@@ -15,13 +15,14 @@ const CATEGORIES = [
   'Main Task [Backend]',
   'Main Task [Frontend]',
   'Main Task [Planning and Learning]',
+  'Main Task [Infrastructure]',
   'Main Task [Monitor]',
   'Main Task [Testing]',
   'Main Task [Meeting]',
 ].join(', ');
 
 // Shared prose describing the two slash commands.
-const GIT_COMMIT_STEPS = `When the user triggers \`/git-commit\`:
+const GIT_COMMIT_STEPS = `When the user triggers \`/clickup-git-commit\`:
 1. Inspect uncommitted work with \`git status\` and \`git diff\`.
 2. Draft a clean, descriptive commit message from the changes.
 3. Pick the category based on the file types — use ONE of these EXACT names:
@@ -37,7 +38,7 @@ const GIT_COMMIT_STEPS = `When the user triggers \`/git-commit\`:
 6. Show the proposed message, category, time, and date and ask the user to confirm.
 7. On confirmation run the CLI (it stages, commits, and syncs to ClickUp):
    \`\`\`bash
-   npx clickup-git-sync commit --message "<msg>" --category "<category>" --hours <h> --min <m> --stage --yes
+   npx @nextzy-tech/clickup-git-sync commit --message "<msg>" --category "<category>" --hours <h> --min <m> --stage --yes
    \`\`\`
    - Time: use \`--hours\`/\`-h\` and/or \`--minutes\`/\`--min\` (e.g. \`-h 1 --min 30\` = 1.5h).
    - To log on a specific day, add \`--start-date YYYY-MM-DD\` (and optionally
@@ -56,13 +57,13 @@ directly (no commit), first decide which of these three they want:
 
 **A. Log time (create a new subtask + time)** — the default:
 \`\`\`bash
-npx clickup-git-sync log --task "<task>" --category "<category>" --hours <h> --min <m>
+npx @nextzy-tech/clickup-git-sync log --task "<task>" --category "<category>" --hours <h> --min <m>
 \`\`\`
 
 **B. Log time to an EXISTING task** (user says "add time to <something already there>"):
 The user gives a rough task name. Search ONLY the configured list by name:
 \`\`\`bash
-npx clickup-git-sync add-time --task-name "<rough name>" --hours <h> --min <m>
+npx @nextzy-tech/clickup-git-sync add-time --task-name "<rough name>" --hours <h> --min <m>
 \`\`\`
 If the CLI reports multiple matches, show the candidates to the user, let them pick,
 then re-run with the exact id: \`add-time --task-id <id> --hours <h>\`.
@@ -72,7 +73,7 @@ the user only wants to log time without being added to the task.
 
 **C. Create a task WITHOUT logging time** (user says "just make the task", "no time"):
 \`\`\`bash
-npx clickup-git-sync task --task "<task>" --category "<category>"
+npx @nextzy-tech/clickup-git-sync task --task "<task>" --category "<category>"
 \`\`\``;
 
 function rulesDoc(tool) {
@@ -82,12 +83,12 @@ This workspace uses the \`clickup-git-sync\` CLI (run via \`npx\`) to sync git
 commits and time tracking to ClickUp. All logic lives in the CLI; these rules
 only tell you when to invoke it.
 
-> First-time setup (once per machine): \`npx clickup-git-sync setup\`
-> Project setup (once per repo): \`npx clickup-git-sync init\`
+> First-time setup (once per machine): \`npx @nextzy-tech/clickup-git-sync setup\`
+> Project setup (once per repo): \`npx @nextzy-tech/clickup-git-sync init\`
 
 ## Slash Commands
 
-### \`/git-commit\`
+### \`/clickup-git-commit\`
 ${GIT_COMMIT_STEPS}
 
 ### \`/clickup-log [task] [hours] [category]\`
@@ -104,7 +105,7 @@ description: ${description}
 # ${name}
 
 This skill teaches the AI agent how to handle the \`/${name}\` slash command via
-the \`clickup-git-sync\` CLI. All logic lives in the CLI (\`npx clickup-git-sync\`).
+the \`clickup-git-sync\` CLI. All logic lives in the CLI (\`npx @nextzy-tech/clickup-git-sync\`).
 
 ## Directives
 
@@ -117,8 +118,8 @@ function filesForTool(tool) {
   switch (tool) {
     case 'claude':
       return [
-        { path: '.claude/skills/git-commit/SKILL.md',
-          content: skillDoc('git-commit', 'Stage, commit, and sync the commit to ClickUp category tasks.', GIT_COMMIT_STEPS) },
+        { path: '.claude/skills/clickup-git-commit/SKILL.md',
+          content: skillDoc('clickup-git-commit', 'Stage, commit, and sync the commit to ClickUp category tasks.', GIT_COMMIT_STEPS) },
         { path: '.claude/skills/clickup-log/SKILL.md',
           content: skillDoc('clickup-log', 'Log tasks and track time directly to ClickUp without committing.', CLICKUP_LOG_STEPS) },
       ];
@@ -127,8 +128,8 @@ function filesForTool(tool) {
     case 'antigravity':
       return [
         { path: '.agents/AGENTS.md', content: rulesDoc('Antigravity') },
-        { path: '.agents/skills/git-commit/SKILL.md',
-          content: skillDoc('git-commit', 'Stage, commit, and sync the commit to ClickUp category tasks.', GIT_COMMIT_STEPS) },
+        { path: '.agents/skills/clickup-git-commit/SKILL.md',
+          content: skillDoc('clickup-git-commit', 'Stage, commit, and sync the commit to ClickUp category tasks.', GIT_COMMIT_STEPS) },
         { path: '.agents/skills/clickup-log/SKILL.md',
           content: skillDoc('clickup-log', 'Log tasks and track time directly to ClickUp without committing.', CLICKUP_LOG_STEPS) },
       ];

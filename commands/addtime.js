@@ -26,7 +26,7 @@ async function run(flags) {
 
   if ((!taskId && !query) || isNaN(hours) || hours <= 0) {
     console.error('❌ Need a target task (--task-id or --task-name) and time (--hours/--minutes).');
-    console.error('   Example: npx clickup-git-sync add-time --task-name "standup" --hours 0.5');
+    console.error('   Example: npx @nextzy-tech/clickup-git-sync add-time --task-name "standup" --hours 0.5');
     process.exit(1);
   }
   if (startDateStr && !isValidDate(startDateStr)) {

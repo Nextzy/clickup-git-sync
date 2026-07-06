@@ -25,7 +25,7 @@ async function run(flags) {
 
   if (!taskName || !category || isNaN(hours) || hours <= 0) {
     console.error('❌ Missing required parameters. --task, --category, and time (--hours/--minutes) are required.');
-    console.error('   Example: npx clickup-git-sync log --task "Standup" --category "Main Task [Meeting]" --hours 1 --min 30');
+    console.error('   Example: npx @nextzy-tech/clickup-git-sync log --task "Standup" --category "Main Task [Meeting]" --hours 1 --min 30');
     process.exit(1);
   }
   for (const [label, v] of [['start', startDateStr], ['end', endDateStr]]) {

@@ -23,7 +23,7 @@ async function run(flags) {
 
   if (!taskName || !category) {
     console.error('❌ Missing required parameters. --task and --category are required.');
-    console.error('   Example: npx clickup-git-sync task --task "Investigate bug" --category "Main Task [Backend]"');
+    console.error('   Example: npx @nextzy-tech/clickup-git-sync task --task "Investigate bug" --category "Main Task [Backend]"');
     process.exit(1);
   }
   for (const [label, v] of [['start', startDateStr], ['end', endDateStr]]) {

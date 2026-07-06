@@ -32,7 +32,7 @@ async function run(flags) {
   const dirty = git.status();
   if (!dirty) {
     console.log('No uncommitted changes. Nothing to commit.');
-    console.log('To log time without a commit: npx clickup-git-sync log --task ...');
+    console.log('To log time without a commit: npx @nextzy-tech/clickup-git-sync log --task ...');
     return;
   }
   console.log('Uncommitted changes:\n' + dirty);

@@ -15,7 +15,7 @@ async function run(flags) {
   }
 
   if (!isInteractive()) {
-    console.error('❌ No token provided. Run: npx clickup-git-sync setup --token pk_xxx');
+    console.error('❌ No token provided. Run: npx @nextzy-tech/clickup-git-sync setup --token pk_xxx');
     process.exit(1);
   }
 
@@ -31,7 +31,7 @@ async function run(flags) {
 
   const p = saveGlobalToken(token);
   console.log(`✓ Token saved to ${p}`);
-  console.log('Next: cd into your project and run  npx clickup-git-sync init');
+  console.log('Next: cd into your project and run  npx @nextzy-tech/clickup-git-sync init');
 }
 
 module.exports = { run };

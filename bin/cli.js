@@ -6,7 +6,7 @@ const { parseArgs } = require('../src/args');
 const HELP = `clickup-git-sync — sync git commits & time tracking to ClickUp
 
 Usage:
-  npx clickup-git-sync <command> [options]
+  npx @nextzy-tech/clickup-git-sync <command> [options]
 
 Commands:
   setup                 Save your ClickUp API token (once per machine)

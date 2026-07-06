@@ -43,7 +43,7 @@ function requireToken() {
   const token = config.CLICKUP_API_TOKEN;
   if (!token || token.includes('YOUR_PERSONAL_API_TOKEN')) {
     console.error(`❌ ClickUp API token not found at ${GLOBAL_CONFIG_PATH}`);
-    console.error('   Run:  npx clickup-git-sync setup');
+    console.error('   Run:  npx @nextzy-tech/clickup-git-sync setup');
     process.exit(1);
   }
   return token;
