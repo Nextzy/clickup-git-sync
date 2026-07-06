@@ -35,6 +35,10 @@ Commands:
   task                  Create a subtask WITHOUT logging time
                           --task "<name>" --category "<cat>"
                           --start-date YYYY-MM-DD --end-date YYYY-MM-DD (or --date)
+  update                Update an EXISTING task's name and/or dates
+                          --task-id <id>  OR  --task-name "<search>"
+                          --name "<new name>"
+                          --start-date YYYY-MM-DD --end-date YYYY-MM-DD (or --date)
   history               Show local sync history  [--json] [--limit N]
   help                  Show this help
 
@@ -71,6 +75,7 @@ async function main() {
     log: () => require('../commands/log').run(flags),
     'add-time': () => require('../commands/addtime').run(flags),
     task: () => require('../commands/task').run(flags),
+    update: () => require('../commands/update').run(flags),
     history: () => require('../commands/history').run(flags),
   };
 

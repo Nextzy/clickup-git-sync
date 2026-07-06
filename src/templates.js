@@ -74,7 +74,18 @@ the user only wants to log time without being added to the task.
 **C. Create a task WITHOUT logging time** (user says "just make the task", "no time"):
 \`\`\`bash
 npx @nextzy-tech/clickup-git-sync task --task "<task>" --category "<category>"
-\`\`\``;
+\`\`\`
+
+**D. Update an EXISTING task** (user says "rename", "แก้ชื่อ task", "เปลี่ยนวัน", "change the dates"):
+Change the name and/or the start/end dates of a task that already exists.
+\`\`\`bash
+npx @nextzy-tech/clickup-git-sync update --task-name "<rough name>" --name "<new name>"
+\`\`\`
+- To change dates instead of (or as well as) the name, add \`--start-date YYYY-MM-DD\`
+  and/or \`--end-date YYYY-MM-DD\` (or \`--date YYYY-MM-DD\` for both). At least one of
+  \`--name\`/\`--start-date\`/\`--end-date\` is required.
+- If the CLI reports multiple matches, show the candidates and re-run with the exact
+  id: \`update --task-id <id> --name "<new name>"\`.`;
 
 function rulesDoc(tool) {
   return `# ${tool} Workspace Rules - ClickUp Git Sync

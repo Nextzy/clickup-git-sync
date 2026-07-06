@@ -10,6 +10,14 @@
 
 ## 🚀 เริ่มใช้งาน
 
+เลือกสถานการณ์ของคุณ:
+
+- **เพิ่งเข้าทีม / repo ตั้งค่าไว้ให้แล้ว** (มี `.clickup.json` + ไฟล์ skill commit อยู่ใน repo แล้ว) →
+  ทำแค่ **ขั้นที่ 1 (ตั้ง token ของตัวเอง)** แล้วใช้งานได้เลย **ไม่ต้องรัน `init`**
+- **เริ่มตั้งค่า repo ใหม่เอง** (ยังไม่มี `.clickup.json`) → ทำ **ขั้นที่ 1 → ขั้นที่ 2 (`init`)**
+
+> token เป็นของแต่ละคน (เก็บนอก repo) — ต่อให้ repo ตั้งค่าไว้แล้ว ทุกคนก็ต้องตั้ง token ของตัวเองครั้งแรกเสมอ
+
 ### 1. ตั้งค่า Token (ครั้งเดียวต่อเครื่อง)
 
 รับ Personal API Token จาก ClickUp: **Settings → Apps → Personal API Tokens → Generate** (ขึ้นต้นด้วย `pk_...`)
@@ -117,6 +125,18 @@ npx @nextzy-tech/clickup-git-sync task --task "Investigate flaky test" --categor
 ```
 สร้าง subtask ใต้ category ที่ระบุ + assign ให้ตัวเอง แต่ **ไม่ลงเวลา** (รับ `--start-date`/`--end-date` ได้)
 
+### แก้ไข task ที่มีอยู่แล้ว (ชื่อ / วันที่)
+
+```bash
+# เปลี่ยนชื่อ task
+npx @nextzy-tech/clickup-git-sync update --task-name "Daily standup" --name "Daily standup (team)"
+
+# เปลี่ยน start/end date (เลือก task ด้วย id เพื่อความแม่นยำ)
+npx @nextzy-tech/clickup-git-sync update --task-id 86ey5fc1a --start-date 2026-07-01 --end-date 2026-07-05
+```
+เลือก task ด้วย `--task-id` (แม่นยำ) หรือ `--task-name` (ค้นในลิสต์ — ถ้าเจอหลายตัวจะให้เลือก) แล้วแก้ได้ทั้ง
+`--name`, `--start-date`, `--end-date` (หรือ `--date` ตั้งทั้งคู่) โดยต้องระบุอย่างน้อย 1 ฟิลด์
+
 ### ดูประวัติ
 
 ```bash
@@ -134,7 +154,7 @@ npx @nextzy-tech/clickup-git-sync history --json     # JSON ดิบ
 | คำสั่ง | ทำอะไร |
 |---|---|
 | `/clickup-git-commit` | AI ดู diff → เสนอ commit message + category + hours + วันที่ → ยืนยัน → commit + sync |
-| `/clickup-log` | ครอบ 3 เคส: (A) ลงเวลา+สร้าง subtask ใหม่, (B) ลงเวลา task ที่มีอยู่ (AI ค้นหาในลิสต์ให้), (C) สร้าง task เปล่าไม่ลงเวลา |
+| `/clickup-log` | ครอบ 4 เคส: (A) ลงเวลา+สร้าง subtask ใหม่, (B) ลงเวลา task ที่มีอยู่ (AI ค้นหาในลิสต์ให้), (C) สร้าง task เปล่าไม่ลงเวลา, (D) แก้ไข task ที่มีอยู่ (เปลี่ยนชื่อ / วันที่) |
 
 AI จะถามวันที่ก่อนลงเสมอ (Enter = วันนี้ / ย้อนหลัง / นำหน้าได้) และใช้ category ชื่อเต็มให้ตรงเป๊ะ
 
@@ -177,19 +197,87 @@ npx @nextzy-tech/clickup-git-sync commit     # commit + สร้าง subtask 
 npx @nextzy-tech/clickup-git-sync log        # สร้าง subtask + ลงเวลา (ไม่ commit)
 npx @nextzy-tech/clickup-git-sync add-time   # ลงเวลากับ task ที่มีอยู่แล้ว
 npx @nextzy-tech/clickup-git-sync task       # สร้าง subtask ไม่ลงเวลา
+npx @nextzy-tech/clickup-git-sync update     # แก้ชื่อ/วันที่ ของ task ที่มีอยู่
 npx @nextzy-tech/clickup-git-sync history    # ดูประวัติ
 npx @nextzy-tech/clickup-git-sync help       # ช่วยเหลือ
 ```
 
 ---
 
+## 🆕 การอัปเดต (สำหรับคนที่ใช้อยู่แล้ว)
+
+เมื่อผู้ดูแลปล่อยเวอร์ชันใหม่ขึ้น npm มี 2 อย่างที่พฤติกรรมต่างกัน:
+
+**1) logic ของ CLI — อัปเดตเอง (เกือบ)**
+รันผ่าน `npx` จะดึงเวอร์ชันล่าสุดให้ **แต่ npx มี cache** จึงอาจยังได้ตัวเก่าอยู่ ถ้าอยากชัวร์ว่าได้ล่าสุด:
+```bash
+npx @nextzy-tech/clickup-git-sync@latest <command>   # บังคับเวอร์ชันล่าสุด
+# หรือเคลียร์ cache ครั้งเดียว:
+npx clear-npx-cache
+```
+
+**2) ไฟล์ skill / rules — ไม่อัปเดตเอง ⚠️**
+ไฟล์ skill (`.claude/skills/...`, `.cursorrules`, `AGENTS.md` ฯลฯ) ถูก "เขียนลง repo" ตอนรัน `init`
+ดังนั้นถ้าเวอร์ชันใหม่มีการเปลี่ยน skill (เช่นเพิ่มคำสั่ง `update`) ไฟล์เดิมในโปรเจกต์จะ **ไม่เปลี่ยนตาม**
+ต้องรัน `init --force` ทับเองในโปรเจกต์นั้น:
+```bash
+npx @nextzy-tech/clickup-git-sync@latest init --force --tools claude
+```
+แล้ว reload skill ในเครื่องมือ AI (ใน Claude Code สั่ง `/reload-skills`) — คำสั่งใหม่ถึงจะโผล่
+
+> เช็คว่าเวอร์ชันล่าสุดบน registry คือเท่าไร: `npm view @nextzy-tech/clickup-git-sync version`
+
+---
+
 ## 📦 สำหรับผู้ดูแล (Publish)
 
+### เอาขึ้น npm ครั้งแรก (first publish)
+
 ```bash
-npm version patch   # หรือ minor / major
+# 1) ล็อกอิน npm (ครั้งเดียวต่อเครื่อง) — ต้องเป็นสมาชิก org @nextzy-tech
+npm login
+
+# 2) ดูว่าจะ publish ไฟล์อะไรบ้าง โดยยังไม่ publish จริง
+npm pack --dry-run
+
+# 3) publish (package.json ตั้ง "access": "public" ไว้แล้ว จึงเผยแพร่ scoped package สาธารณะได้เลย)
 npm publish
+
+# 4) push โค้ด + git tag ขึ้น GitHub
+git push && git push --tags
+
+# 5) ยืนยันว่าขึ้น registry แล้ว
+npm view @nextzy-tech/clickup-git-sync version
 ```
-ผู้ใช้ทุกคนที่รันผ่าน `npx` จะได้เวอร์ชันใหม่อัตโนมัติ — ไม่ต้องแจกไฟล์ใหม่
+> ถ้า org `@nextzy-tech` ยังไม่มี ต้องไปสร้างที่ npmjs.com ก่อน (ครั้งเดียว) แล้วเพิ่มสมาชิกทีมที่มีสิทธิ์ publish
+
+### แก้ไขแล้วเอาขึ้นใหม่ (release update)
+
+```bash
+# 1) แก้โค้ด แล้วทดสอบ local ก่อน (ยังไม่ต้อง publish)
+node bin/cli.js help
+node bin/cli.js <command> ...        # ยิงจริงกับ task ทดสอบได้
+# หรือ: npm pack แล้วเอาไฟล์ .tgz ไปติดตั้งทดสอบในโปรเจกต์อื่น
+
+# 2) bump version ตาม semver (คำสั่งนี้สร้าง git commit + tag ให้อัตโนมัติ)
+npm version patch    # แก้บั๊ก / เอกสาร          1.0.0 → 1.0.1
+npm version minor    # เพิ่มคำสั่งใหม่ (ไม่ breaking) 1.0.0 → 1.1.0
+npm version major    # เปลี่ยนแบบ breaking         1.0.0 → 2.0.0
+
+# 3) publish + push
+npm publish
+git push && git push --tags
+```
+
+| bump | ใช้เมื่อ |
+|---|---|
+| `patch` | แก้บั๊ก / แก้เอกสาร / ปรับข้อความ (ไม่เพิ่มความสามารถ) |
+| `minor` | เพิ่มความสามารถใหม่แบบเข้ากันได้กับของเดิม — เช่นรอบที่เพิ่มคำสั่ง `update` |
+| `major` | เปลี่ยนแบบ breaking (ลบ/เปลี่ยนพฤติกรรม flag เดิม) |
+
+> **สำคัญ:** logic อยู่ใน CLI กลาง — พอ `npm publish` แล้วคนที่รันผ่าน `npx` ได้เวอร์ชันใหม่เอง
+> **แต่ถ้าการแก้รอบนั้นแตะ template ของ skill** (`src/templates.js`) ผู้ใช้เดิมต้องรัน `init --force`
+> ในโปรเจกต์ของตัวเองเพื่อรีเฟรชไฟล์ skill (ดูหัวข้อ "🆕 การอัปเดต" ด้านบน)
 
 ## License
 

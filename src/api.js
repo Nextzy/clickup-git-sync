@@ -177,6 +177,17 @@ async function addTaskAssignees(token, taskId, userIds) {
   });
 }
 
+// Update fields on an existing task. Only the keys provided are sent, so a
+// caller can rename without touching dates (or vice versa). startMs / dueMs are
+// epoch ms — use dateToMs (src/clickup.js) to convert YYYY-MM-DD.
+async function updateTask(token, taskId, { name, startMs, dueMs }) {
+  const body = {};
+  if (name != null) body.name = name;
+  if (startMs != null) body.start_date = startMs;
+  if (dueMs != null) body.due_date = dueMs;
+  return apiRequest({ method: 'PUT', endpoint: `/task/${taskId}`, token, body });
+}
+
 // Search a list (subtasks included) for tasks matching a name. Exact
 // (normalized) matches win; otherwise falls back to "contains". Returns
 // [{ id, name }]. Note: reads the first page of tasks (ClickUp default ~100).
@@ -200,5 +211,6 @@ module.exports = {
   resolveParentTask,
   getTask,
   addTaskAssignees,
+  updateTask,
   findTasksByName,
 };
