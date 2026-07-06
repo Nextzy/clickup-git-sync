@@ -259,15 +259,22 @@ node bin/cli.js help
 node bin/cli.js <command> ...        # ยิงจริงกับ task ทดสอบได้
 # หรือ: npm pack แล้วเอาไฟล์ .tgz ไปติดตั้งทดสอบในโปรเจกต์อื่น
 
-# 2) bump version ตาม semver (คำสั่งนี้สร้าง git commit + tag ให้อัตโนมัติ)
+# 2) commit ให้หมดก่อน — git working directory ต้องสะอาด
+#    ไม่งั้น npm version จะ error: "Git working directory not clean."
+git add -A && git commit -m "<สรุปการแก้>"
+
+# 3) bump version ตาม semver (คำสั่งนี้สร้าง git commit + tag ให้อัตโนมัติ)
 npm version patch    # แก้บั๊ก / เอกสาร          1.0.0 → 1.0.1
 npm version minor    # เพิ่มคำสั่งใหม่ (ไม่ breaking) 1.0.0 → 1.1.0
 npm version major    # เปลี่ยนแบบ breaking         1.0.0 → 2.0.0
 
-# 3) publish + push
+# 4) publish + push
 npm publish
 git push && git push --tags
 ```
+
+> `npm version` บังคับให้ working tree สะอาด (ต้อง commit งานที่แก้ให้เรียบร้อยก่อน) แล้วมันจะสร้าง
+> commit ของการ bump version + git tag ให้เองอีกที — ถ้ายังมีไฟล์ค้างจะขึ้น error `Git working directory not clean.`
 
 | bump | ใช้เมื่อ |
 |---|---|
