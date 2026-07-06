@@ -38,14 +38,14 @@ npx clickup-git-sync init
 ```bash
 npx clickup-git-sync init \
   --list "[Project XL] Test-Clickup-Skill" \
-  --space "True Money" --space-id 90182654103 \
-  --folder-prefix "[True] Support List" \
+  --space "XXX" --space-id 900000000 \
+  --folder-prefix "[XXX] Support List" \
   --tools claude
 # --list          : ชื่อ ClickUp list ของโปรเจกต์
 # --space          : ล็อก space (client) ตามชื่อ
 # --space-id       : ล็อก space ตาม ID (แนะนำ เสถียรกว่าชื่อ)
 # --folder-prefix  : prefix ของ folder รายเดือน — ระบบเติม "เดือน ปี" ให้เอง
-#                    เช่น "[True] Support List" → "[True] Support List Jul 2026"
+#                    เช่น "[XXX] Support List" → "[XXX] Support List Jul 2026"
 # --tools          : claude, cursor, antigravity, codex (ไม่ใส่ = ติดตั้งทั้งหมด)
 # --force          : เขียนทับไฟล์เดิม
 ```
