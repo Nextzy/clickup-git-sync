@@ -27,8 +27,10 @@ function fmtHours(h) {
 // Auto-assigns to the token owner. Returns { parentTaskId, subtaskId, startMs }.
 //
 // startDateStr / endDateStr are optional YYYY-MM-DD. Empty start -> today.
-// Empty end -> same as start.
-async function createSubtask({ token, listId, category, taskName, startDateStr, endDateStr }) {
+// Empty end -> same as start. taskDescription (optional) becomes the task's
+// ClickUp description field — used to keep task names short while stashing the
+// details/jargon in the body.
+async function createSubtask({ token, listId, category, taskName, startDateStr, endDateStr, taskDescription }) {
   const parentTaskId = await resolveParentTask(token, listId, category);
   console.log(`✓ Parent task "${category}" (ID: ${parentTaskId})`);
 
@@ -60,6 +62,7 @@ async function createSubtask({ token, listId, category, taskName, startDateStr, 
       parent: parentTaskId,
       start_date: startMs,
       due_date: endMs,
+      ...(taskDescription ? { description: taskDescription } : {}),
       ...(assignees ? { assignees } : {}),
     },
   });
@@ -70,8 +73,8 @@ async function createSubtask({ token, listId, category, taskName, startDateStr, 
 // Create a subtask AND log tracked time to it. Shared path for `commit`/`log`.
 // When an explicit start date is given, the time entry is anchored to that day
 // too (so backdated logs land on the right date).
-async function createSubtaskWithTime({ token, teamId, listId, category, taskName, hours, startDateStr, endDateStr, description }) {
-  const { parentTaskId, subtaskId, startMs } = await createSubtask({ token, listId, category, taskName, startDateStr, endDateStr });
+async function createSubtaskWithTime({ token, teamId, listId, category, taskName, hours, startDateStr, endDateStr, description, taskDescription }) {
+  const { parentTaskId, subtaskId, startMs } = await createSubtask({ token, listId, category, taskName, startDateStr, endDateStr, taskDescription });
   await logTime(token, teamId, subtaskId, hours, description || taskName, startDateStr ? startMs : null);
   console.log(`✓ Tracked ${fmtHours(hours)} to ClickUp.`);
   return { parentTaskId, subtaskId };

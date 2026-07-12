@@ -20,6 +20,8 @@ async function run(flags) {
     : (typeof flags.date === 'string' ? flags.date : '');
   const endDateStr = typeof flags['end-date'] === 'string' ? flags['end-date']
     : (typeof flags.date === 'string' ? flags.date : '');
+  const description = typeof flags.description === 'string' ? flags.description
+    : (typeof flags.desc === 'string' ? flags.desc : '');
 
   if (!taskName || !category) {
     console.error('❌ Missing required parameters. --task and --category are required.');
@@ -36,7 +38,7 @@ async function run(flags) {
   try {
     const { token, listId } = await resolveTarget(startDateStr);
     const { parentTaskId, subtaskId } = await createSubtask({
-      token, listId, category, taskName, startDateStr, endDateStr,
+      token, listId, category, taskName, startDateStr, endDateStr, taskDescription: description,
     });
 
     writeHistory({ type: 'task', taskName, category, status: 'created', clickupTaskId: parentTaskId, clickupSubtaskId: subtaskId });

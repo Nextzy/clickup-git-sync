@@ -22,6 +22,8 @@ async function run(flags) {
     : (typeof flags.date === 'string' ? flags.date : '');
   const endDateStr = typeof flags['end-date'] === 'string' ? flags['end-date']
     : (typeof flags.date === 'string' ? flags.date : '');
+  const description = typeof flags.description === 'string' ? flags.description
+    : (typeof flags.desc === 'string' ? flags.desc : '');
 
   if (!taskName || !category || isNaN(hours) || hours <= 0) {
     console.error('❌ Missing required parameters. --task, --category, and time (--hours/--minutes) are required.');
@@ -39,7 +41,7 @@ async function run(flags) {
     const { token, teamId, listId } = await resolveTarget(startDateStr);
 
     const { parentTaskId, subtaskId } = await createSubtaskWithTime({
-      token, teamId, listId, category, taskName, hours, startDateStr, endDateStr,
+      token, teamId, listId, category, taskName, hours, startDateStr, endDateStr, taskDescription: description,
     });
 
     writeHistory({

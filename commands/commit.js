@@ -54,19 +54,27 @@ async function run(flags) {
     return;
   }
 
-  // 3. Commit message
+  // 3. Commit message (short subject) + optional details (body)
   let message = typeof flags.message === 'string' ? flags.message : '';
   if (!message && !auto) {
-    message = (await ask('Commit message: ')).trim();
+    message = (await ask('Commit message (short subject): ')).trim();
   }
   if (!message) {
     console.error('❌ Commit message is required (use --message "...").');
     process.exit(1);
   }
 
+  // Details go into the git commit body AND the ClickUp task description, so the
+  // subject/name stays short and the long explanation lives in one place.
+  let description = typeof flags.description === 'string' ? flags.description
+    : (typeof flags.desc === 'string' ? flags.desc : '');
+  if (!description && !auto) {
+    description = (await ask('Details (optional, Enter to skip): ')).trim();
+  }
+
   // 4. Commit
   try {
-    git.commit(message);
+    git.commit(message, description);
   } catch (e) {
     console.error('❌ Commit failed:', e.message);
     process.exit(1);
@@ -131,7 +139,7 @@ async function run(flags) {
     const { token, teamId, listId } = await resolveTarget(startDateStr);
 
     const { parentTaskId, subtaskId } = await createSubtaskWithTime({
-      token, teamId, listId, category, taskName: subtaskName, hours, startDateStr, endDateStr,
+      token, teamId, listId, category, taskName: subtaskName, hours, startDateStr, endDateStr, taskDescription: description,
     });
 
     writeHistory({ type: 'git', commitHash: hash, commitMessage: message, status: 'synced', category, hours, clickupTaskId: parentTaskId, clickupSubtaskId: subtaskId });

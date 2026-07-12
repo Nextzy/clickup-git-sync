@@ -27,14 +27,19 @@ async function run(flags) {
     : (typeof flags.date === 'string' ? flags.date : '');
   const endDateStr = typeof flags['end-date'] === 'string' ? flags['end-date']
     : (typeof flags.date === 'string' ? flags.date : '');
+  // Note: `flags.desc !== undefined` (not `typeof === 'string'`) lets `--description ""`
+  // clear the task body — an empty string is a valid "erase it" value here.
+  const hasDescription = flags.description !== undefined || flags.desc !== undefined;
+  const description = typeof flags.description === 'string' ? flags.description
+    : (typeof flags.desc === 'string' ? flags.desc : '');
 
   if (!taskId && !query) {
     console.error('❌ Need a target task (--task-id or --task-name).');
     console.error('   Example: npx @nextzy-tech/clickup-git-sync update --task-name "standup" --name "Daily standup"');
     process.exit(1);
   }
-  if (!newName && !startDateStr && !endDateStr) {
-    console.error('❌ Nothing to update. Provide at least one of --name, --start-date, --end-date (or --date).');
+  if (!newName && !startDateStr && !endDateStr && !hasDescription) {
+    console.error('❌ Nothing to update. Provide at least one of --name, --start-date, --end-date (or --date), --description.');
     process.exit(1);
   }
   for (const [label, v] of [['start', startDateStr], ['end', endDateStr]]) {
@@ -86,12 +91,14 @@ async function run(flags) {
       name: newName || undefined,
       startMs,
       dueMs,
+      description: hasDescription ? description : undefined,
     });
 
     const changed = [
       newName ? `name → "${newName}"` : null,
       startDateStr ? `start → ${startDateStr}` : null,
       endDateStr ? `end → ${endDateStr}` : null,
+      hasDescription ? (description ? 'description updated' : 'description cleared') : null,
     ].filter(Boolean).join(', ');
     console.log(`✓ Updated (${changed}).`);
 

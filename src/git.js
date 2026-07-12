@@ -31,8 +31,13 @@ function stagedFiles() {
   }
 }
 
-function commit(message) {
-  execSync(`git commit -m "${message.replace(/"/g, '\\"')}"`, { stdio: ['pipe', 'pipe', 'pipe'] });
+// Commit with a short subject and, optionally, a longer body. Passing both as
+// separate -m args makes git render them as "subject\n\nbody" — the standard
+// shape (keeps the subject line short, details in the body).
+function commit(message, body) {
+  const esc = (s) => String(s).replace(/"/g, '\\"');
+  const bodyArg = body ? ` -m "${esc(body)}"` : '';
+  execSync(`git commit -m "${esc(message)}"${bodyArg}`, { stdio: ['pipe', 'pipe', 'pipe'] });
 }
 
 function shortHash() {

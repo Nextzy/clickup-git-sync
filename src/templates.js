@@ -19,12 +19,19 @@ const CATEGORIES = [
   'Main Task [Monitor]',
   'Main Task [Testing]',
   'Main Task [Meeting]',
+  'Main Task [Review code & logic]',
 ].join(', ');
 
 // Shared prose describing the two slash commands.
 const GIT_COMMIT_STEPS = `When the user triggers \`/clickup-git-commit\`:
 1. Inspect uncommitted work with \`git status\` and \`git diff\`.
-2. Draft a clean, descriptive commit message from the changes.
+2. Draft the commit as TWO parts:
+   - a **short subject** (\`--message\`): ~50 chars, ideally ≤72, imperative mood,
+     plain language — this becomes both the git subject line and the ClickUp task name,
+     so it must NOT be long or full of jargon.
+   - the **details** (\`--description\`): everything longer — what changed, why, key
+     modules/impact. This goes into the git commit body AND the ClickUp task description.
+   If the change is trivial (typo/one-liner), the details can be omitted.
 3. Pick the category based on the file types — use ONE of these EXACT names:
    ${CATEGORIES}
 4. Estimate the tracked time from the ACTUAL complexity of the diff you just
@@ -35,11 +42,12 @@ const GIT_COMMIT_STEPS = `When the user triggers \`/clickup-git-commit\`:
    Time can be given as \`--hours\`/\`-h\` and/or \`--minutes\`/\`--min\` (they are summed).
 5. Ask which date the work should be logged on: press Enter/skip for **today**, or
    give a past date (backdate) or future date in YYYY-MM-DD.
-6. Show the proposed message, category, time, and date and ask the user to confirm.
+6. Show the proposed subject, details, category, time, and date and ask the user to confirm.
 7. On confirmation run the CLI (it stages, commits, and syncs to ClickUp):
    \`\`\`bash
-   npx @nextzy-tech/clickup-git-sync commit --message "<msg>" --category "<category>" --hours <h> --min <m> --stage --yes
+   npx @nextzy-tech/clickup-git-sync commit --message "<short subject>" --description "<details>" --category "<category>" --hours <h> --min <m> --stage --yes
    \`\`\`
+   - Keep \`--message\` short; put the long explanation in \`--description\` (omit it for trivial changes).
    - Time: use \`--hours\`/\`-h\` and/or \`--minutes\`/\`--min\` (e.g. \`-h 1 --min 30\` = 1.5h).
    - To log on a specific day, add \`--start-date YYYY-MM-DD\` (and optionally
      \`--end-date YYYY-MM-DD\` for a range). Omit both for today.
@@ -50,6 +58,9 @@ directly (no commit), first decide which of these three they want:
 
 **Shared rules for every case below:**
 - Category must be ONE of these EXACT names: ${CATEGORIES}
+- **Task name (\`--task\`) must be short and human-readable** — plain language describing
+  the work, NOT code symbols / file paths / heavy jargon. Put any detail, technical terms,
+  or context into \`--description\` (the task body) instead, so the name stays scannable.
 - Time: \`--hours\`/\`--h\` and/or \`--minutes\`/\`--min\` are summed (e.g. \`--h 1 --min 30\` = 1.5h).
 - Date: ask which day — Enter/skip = **today**, or a past (backdate) / future date.
   Add \`--start-date YYYY-MM-DD\` (and optionally \`--end-date YYYY-MM-DD\`); omit for today.
@@ -57,8 +68,9 @@ directly (no commit), first decide which of these three they want:
 
 **A. Log time (create a new subtask + time)** — the default:
 \`\`\`bash
-npx @nextzy-tech/clickup-git-sync log --task "<task>" --category "<category>" --hours <h> --min <m>
+npx @nextzy-tech/clickup-git-sync log --task "<short task name>" --category "<category>" --description "<details>" --hours <h> --min <m>
 \`\`\`
+(\`--description\` is optional — add it when there's detail worth keeping off the name.)
 
 **B. Log time to an EXISTING task** (user says "add time to <something already there>"):
 The user gives a rough task name. Search ONLY the configured list by name:
@@ -73,17 +85,17 @@ the user only wants to log time without being added to the task.
 
 **C. Create a task WITHOUT logging time** (user says "just make the task", "no time"):
 \`\`\`bash
-npx @nextzy-tech/clickup-git-sync task --task "<task>" --category "<category>"
+npx @nextzy-tech/clickup-git-sync task --task "<short task name>" --category "<category>" --description "<details>"
 \`\`\`
+(\`--description\` is optional.)
 
-**D. Update an EXISTING task** (user says "rename", "แก้ชื่อ task", "เปลี่ยนวัน", "change the dates"):
-Change the name and/or the start/end dates of a task that already exists.
+**D. Update an EXISTING task** (user says "rename", "แก้ชื่อ task", "เปลี่ยนวัน", "แก้รายละเอียด", "change the dates/details"):
+Change the name, start/end dates, and/or the details of a task that already exists.
 \`\`\`bash
 npx @nextzy-tech/clickup-git-sync update --task-name "<rough name>" --name "<new name>"
 \`\`\`
-- To change dates instead of (or as well as) the name, add \`--start-date YYYY-MM-DD\`
-  and/or \`--end-date YYYY-MM-DD\` (or \`--date YYYY-MM-DD\` for both). At least one of
-  \`--name\`/\`--start-date\`/\`--end-date\` is required.
+- Add any of: \`--name "<new name>"\`, \`--start-date YYYY-MM-DD\`, \`--end-date YYYY-MM-DD\`
+  (or \`--date YYYY-MM-DD\` for both), \`--description "<details>"\`. At least one is required.
 - If the CLI reports multiple matches, show the candidates and re-run with the exact
   id: \`update --task-id <id> --name "<new name>"\`.`;
 

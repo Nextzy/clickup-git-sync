@@ -21,11 +21,13 @@ Commands:
                           --force                overwrite existing files
   commit                Stage, commit, and sync the commit to ClickUp
                           --message "<msg>" --category "<cat>"
+                          --description/--desc "<details>"  (git body + task body)
                           --hours/-h <n> --minutes/--min <n>  (summed)
                           --start-date YYYY-MM-DD --end-date YYYY-MM-DD
                           --date YYYY-MM-DD (shorthand: both) --stage --no-log --yes
   log                   Log time directly (creates a subtask + time)
                           --task "<name>" --category "<cat>"
+                          --description/--desc "<details>"  (task body)
                           --hours/--h <n> --minutes/--min <n>  (summed)
                           --start-date YYYY-MM-DD --end-date YYYY-MM-DD (or --date)
   add-time              Log time to an EXISTING task (creates nothing new)
@@ -34,10 +36,11 @@ Commands:
                           (adds you as an assignee by default; --no-assign to skip)
   task                  Create a subtask WITHOUT logging time
                           --task "<name>" --category "<cat>"
+                          --description/--desc "<details>"  (task body)
                           --start-date YYYY-MM-DD --end-date YYYY-MM-DD (or --date)
-  update                Update an EXISTING task's name and/or dates
+  update                Update an EXISTING task's name, dates, and/or details
                           --task-id <id>  OR  --task-name "<search>"
-                          --name "<new name>"
+                          --name "<new name>"  --description/--desc "<details>"
                           --start-date YYYY-MM-DD --end-date YYYY-MM-DD (or --date)
   history               Show local sync history  [--json] [--limit N]
   help                  Show this help

@@ -179,12 +179,14 @@ async function addTaskAssignees(token, taskId, userIds) {
 
 // Update fields on an existing task. Only the keys provided are sent, so a
 // caller can rename without touching dates (or vice versa). startMs / dueMs are
-// epoch ms — use dateToMs (src/clickup.js) to convert YYYY-MM-DD.
-async function updateTask(token, taskId, { name, startMs, dueMs }) {
+// epoch ms — use dateToMs (src/clickup.js) to convert YYYY-MM-DD. description
+// replaces the task body.
+async function updateTask(token, taskId, { name, startMs, dueMs, description }) {
   const body = {};
   if (name != null) body.name = name;
   if (startMs != null) body.start_date = startMs;
   if (dueMs != null) body.due_date = dueMs;
+  if (description != null) body.description = description;
   return apiRequest({ method: 'PUT', endpoint: `/task/${taskId}`, token, body });
 }
 
