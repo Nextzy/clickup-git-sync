@@ -37,6 +37,6 @@
   "author": "nextzy",
   "repository": {
     "type": "git",
-    "url": "https://github.com/nextzy/clickup-git-sync.git"
+    "url": "git+https://github.com/Nextzy/clickup-git-sync.git"
   }
 }
