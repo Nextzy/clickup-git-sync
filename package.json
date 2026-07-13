@@ -1,6 +1,6 @@
 {
   "name": "@nextzy-tech/clickup-git-sync",
-  "version": "1.0.2",
+  "version": "1.0.4",
   "description": "Sync git commits and time tracking to ClickUp as monthly category subtasks. Multi-user, npx-ready, with AI skill scaffolding for Claude, Cursor, Antigravity and Codex.",
   "bin": {
     "clickup-git-sync": "bin/cli.js"
