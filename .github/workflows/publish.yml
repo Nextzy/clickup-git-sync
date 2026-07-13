@@ -20,17 +20,23 @@ jobs:
           node-version: 22
         # no registry-url: it injects a placeholder auth token that breaks OIDC
 
-      - name: Upgrade npm (Trusted Publishing needs >= 11.5.1)
-        run: npm install -g npm@latest
+      - name: Ensure npm supports Trusted Publishing (>= 11.5.1)
+        # npm@11 runs on any Node 22.x; npm@latest (v12) needs Node >= 22.22.2 and
+        # would silently leave the old bundled npm 10.x if the runner's Node is lower
+        run: |
+          npm install -g npm@11
+          echo "npm version: $(npm --version)"
 
-      - name: Debug OIDC prerequisites
+      - name: Assert OIDC prerequisites
         run: |
           echo "which npm : $(which npm)"
-          echo "npm version: $(npm --version)   (needs >= 11.5.1)"
+          echo "npm       : $(npm --version)"
+          node -e "const v=require('child_process').execSync('npm --version').toString().trim().split('.').map(Number); if(v[0]<11||(v[0]===11&&v[1]<5)){console.error('npm too old for OIDC:',v.join('.'));process.exit(1)}"
           if [ -n "$ACTIONS_ID_TOKEN_REQUEST_URL" ]; then
-            echo "id-token   : available ✅"
+            echo "id-token  : available ✅"
           else
-            echo "id-token   : MISSING ❌ (id-token: write not effective)"
+            echo "id-token  : MISSING ❌ (id-token: write not effective)"
+            exit 1
           fi
 
       - name: Verify tag matches package.json version
