@@ -21,9 +21,17 @@ jobs:
         # no registry-url: it injects a placeholder auth token that breaks OIDC
 
       - name: Upgrade npm (Trusted Publishing needs >= 11.5.1)
+        run: npm install -g npm@latest
+
+      - name: Debug OIDC prerequisites
         run: |
-          npm install -g npm@latest
-          echo "npm version: $(npm --version)"   # must be >= 11.5.1 for OIDC
+          echo "which npm : $(which npm)"
+          echo "npm version: $(npm --version)   (needs >= 11.5.1)"
+          if [ -n "$ACTIONS_ID_TOKEN_REQUEST_URL" ]; then
+            echo "id-token   : available ✅"
+          else
+            echo "id-token   : MISSING ❌ (id-token: write not effective)"
+          fi
 
       - name: Verify tag matches package.json version
         run: |
