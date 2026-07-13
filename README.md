@@ -260,10 +260,13 @@ npm view @nextzy-tech/clickup-git-sync version
 ```
 > ถ้า org `@nextzy-tech` ยังไม่มี ต้องไปสร้างที่ npmjs.com ก่อน (ครั้งเดียว) แล้วเพิ่มสมาชิกทีมที่มีสิทธิ์ publish
 
-### แก้ไขแล้วเอาขึ้นใหม่ (release update)
+### แก้ไขแล้วเอาขึ้นใหม่ (release update) — publish อัตโนมัติผ่าน CI
+
+> ไม่ต้องรัน `npm publish` เองแล้ว — แค่ `push` git tag ขึ้นไป GitHub Actions (`.github/workflows/publish.yml`)
+> จะ publish ขึ้น npm ให้อัตโนมัติ (ตั้ง Trusted Publisher ครั้งเดียว — ดูหัวข้อ "ตั้งค่า CI/CD" ด้านล่าง)
 
 ```bash
-# 1) แก้โค้ด แล้วทดสอบ local ก่อน (ยังไม่ต้อง publish)
+# 1) แก้โค้ด แล้วทดสอบ local ก่อน
 node bin/cli.js help
 node bin/cli.js <command> ...        # ยิงจริงกับ task ทดสอบได้
 # หรือ: npm pack แล้วเอาไฟล์ .tgz ไปติดตั้งทดสอบในโปรเจกต์อื่น
@@ -277,10 +280,40 @@ npm version patch    # แก้บั๊ก / เอกสาร          1.0.0
 npm version minor    # เพิ่มคำสั่งใหม่ (ไม่ breaking) 1.0.0 → 1.1.0
 npm version major    # เปลี่ยนแบบ breaking         1.0.0 → 2.0.0
 
-# 4) publish + push
-npm publish
+# 4) push โค้ด + tag → CI publish ให้อัตโนมัติ
 git push && git push --tags
+
+# 5) (ไม่บังคับ) ตามดูสถานะที่ Actions tab บน GitHub แล้วยืนยันเวอร์ชัน
+npm view @nextzy-tech/clickup-git-sync version
 ```
+
+> workflow `publish.yml` จะเช็คก่อนว่า git tag (`v1.2.3`) ตรงกับ `version` ใน `package.json` ไหม
+> ถ้าไม่ตรงจะ fail ทันที ป้องกัน publish ผิดเวอร์ชัน
+
+### ตั้งค่า CI/CD (ครั้งเดียว)
+
+repo นี้มี 2 workflow:
+- **`ci.yml`** — รันตอนเปิด PR / push เข้า `main`: เช็คว่า CLI boot ได้ (`node bin/cli.js help`) และ package ถูกต้อง (`npm pack --dry-run`)
+- **`publish.yml`** — รันตอน push git tag `v*`: publish ขึ้น npm อัตโนมัติ
+
+auth ใช้ **Trusted Publishing (OIDC)** — npm เชื่อ GitHub Actions โดยตรง **ไม่ต้องเก็บ token/secret**
+และได้ **provenance badge** บนหน้า npm อัตโนมัติ ตั้งครั้งเดียวก่อนใช้ auto-publish:
+
+```
+npmjs.com → เข้าหน้า package @nextzy-tech/clickup-git-sync → Settings
+  → Publishing access (หรือ "Trusted Publisher") → Add / Connect
+  → เลือก GitHub Actions แล้วกรอก:
+      Organization / user : nextzy
+      Repository          : clickup-git-sync
+      Workflow filename   : publish.yml
+      Environment         : (เว้นว่าง)
+```
+
+> **ครั้งแรกสุด (bootstrap):** Trusted Publisher ตั้งได้ต่อเมื่อ package มีอยู่บน npm แล้ว —
+> ถ้ายังไม่เคย publish เลย ให้ทำ first publish ด้วยมือ (หัวข้อบนสุด) ครั้งเดียวก่อน แล้วค่อยมาตั้ง OIDC
+>
+> workflow อัปเกรด npm เป็นเวอร์ชันล่าสุดให้เอง (Trusted Publishing ต้องใช้ npm ≥ 11.5.1) และมี
+> `permissions: id-token: write` ไว้ให้แล้ว
 
 > `npm version` บังคับให้ working tree สะอาด (ต้อง commit งานที่แก้ให้เรียบร้อยก่อน) แล้วมันจะสร้าง
 > commit ของการ bump version + git tag ให้เองอีกที — ถ้ายังมีไฟล์ค้างจะขึ้น error `Git working directory not clean.`
