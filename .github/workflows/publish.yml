@@ -18,7 +18,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          registry-url: 'https://registry.npmjs.org'
+        # no registry-url: it injects a placeholder auth token that breaks OIDC
 
       - name: Upgrade npm (Trusted Publishing needs >= 11.5.1)
         run: npm install -g npm@latest
